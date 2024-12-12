@@ -1,0 +1,158 @@
+Organizations:
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererMSP
+    MSPDir: ../organizations/ordererOrganizations/healthcare.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+    OrdererEndpoints:
+      - orderer.healthcare.com:7050
+  - &Hospitals
+    Name: HospitalsMSP
+    ID: HospitalsMSP
+    MSPDir: ../organizations/peerOrganizations/hospitals.healthcare.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('HospitalsMSP.admin', 'HospitalsMSP.peer', 'HospitalsMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('HospitalsMSP.admin', 'HospitalsMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('HospitalsMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('HospitalsMSP.peer')"
+  - &Labs
+    Name: LabsMSP
+    ID: LabsMSP
+    MSPDir: ../organizations/peerOrganizations/labs.healthcare.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('LabsMSP.admin', 'LabsMSP.peer', 'LabsMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('LabsMSP.admin', 'LabsMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('LabsMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('LabsMSP.peer')"
+
+  - &Insurancecompany
+    Name: InsurancecompanyMSP
+    ID: InsurancecompanyMSP
+    MSPDir: ../organizations/peerOrganizations/insurancecompany.healthcare.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('InsurancecompanyMSP.admin', 'InsurancecompanyMSP.peer', 'InsurancecompanyMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('InsurancecompanyMSP.admin', 'InsurancecompanyMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('InsurancecompanyMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('InsurancecompanyMSP.peer')"
+
+Capabilities:  
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_5: true
+    
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  Addresses:
+    - orderer.healthcare.com:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  ThreeOrgsChannel:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      OrdererType: etcdraft
+      EtcdRaft:
+        Consenters:
+          - Host: orderer.healthcare.com
+            Port: 7050
+            ClientTLSCert: ../organizations/ordererOrganizations/healthcare.com/orderers/orderer.healthcare.com/tls/server.crt
+            ServerTLSCert: ../organizations/ordererOrganizations/healthcare.com/orderers/orderer.healthcare.com/tls/server.crt
+      Organizations:
+        - *OrdererOrg
+      Capabilities: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *Hospitals
+        - *Labs
+        - *Insurancecompany
+      Capabilities: *ApplicationCapabilities
